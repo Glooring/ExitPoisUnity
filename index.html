@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>Unity WebGL Player | Exit Pois</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <style>
+        html, body {
+            /* Ensure html and body take up full height */
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            /* Removed overflow: hidden; */
+            touch-action: none;
+            text-align: center;
+        }
+
+        #unity-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            /* Removed display: flex; and related properties */
+            /* Centering will be handled differently */
+        }
+
+        /* Updated canvas styles */
+        #unity-canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: black;
+            /* Remove width and height styles; handled via JavaScript */
+        }
+
+        /* Remove focus outline on the canvas */
+        #unity-canvas:focus {
+            outline: none;
+        }
+
+        /* Hide loading bar and footer for a minimalist look */
+        #unity-loading-bar, #unity-footer {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas" tabindex="1"></canvas>
+    </div>
+    <script>
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/ExitPoisWeb.loader.js";
+      var config = {
+        dataUrl: buildUrl + "/ExitPoisWeb.data",
+        frameworkUrl: buildUrl + "/ExitPoisWeb.framework.js",
+        codeUrl: buildUrl + "/ExitPoisWeb.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Exit Pois",
+        productVersion: "1.0.2",
+        // showBanner: unityShowBanner,
+      };
+        // Prevent context menu on right-click
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        let canvas = document.getElementById("unity-canvas");
+        let container = document.getElementById("unity-container");
+        let unityInstance = null;
+
+        // Function to resize the canvas while maintaining aspect ratio
+        function resizeCanvas() {
+            const aspectRatio = 9 / 16;
+            let width, height;
+
+            // Use window.innerWidth and window.innerHeight for both modes
+            let availableWidth = window.innerWidth;
+            let availableHeight = window.innerHeight;
+
+            // Calculate the ideal width and height to maintain aspect ratio
+            if (availableHeight * aspectRatio <= availableWidth) {
+                height = availableHeight;
+                width = height * aspectRatio;
+            } else {
+                width = availableWidth;
+                height = width / aspectRatio;
+            }
+
+            // Set the canvas size
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+
+            // Center the canvas within the container
+            canvas.style.marginTop = ((availableHeight - height) / 2) + 'px';
+
+            // Unity will automatically adjust the WebGL context size
+        }
+
+        // Fullscreen toggle with F11 key
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "F11") {
+                event.preventDefault();
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Resize canvas when entering or exiting fullscreen
+        document.addEventListener('fullscreenchange', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        // Load Unity script
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                // Optionally handle the progress bar here
+            }).then((instance) => {
+                unityInstance = instance;
+                resizeCanvas();
+            }).catch((message) => {
+                alert(message);
+              });
+            };
+
+      document.body.appendChild(script);
+
+    </script>
+  </body>
+</html>
