@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Unity WebGL Player | Exit Pois</title>
-    <meta name="viewport" content="width=device-width, user-scalable=no">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         html, body {
             /* Ensure html and body take up full height */
@@ -148,11 +148,6 @@
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/ExitPoisWeb.loader.js";
 
-        // Dynamically set devicePixelRatio to counteract system scaling
-        var systemPixelRatio = window.devicePixelRatio || 1;
-        var desiredPixelRatio = 1; // Target devicePixelRatio for Unity
-        var unityDevicePixelRatio = desiredPixelRatio / systemPixelRatio;
-
 		function getDevicePixelRatio() {
 			// Get the default device pixel ratio from the browser
 			let devicePixelRatio = window.devicePixelRatio || 1;
@@ -191,8 +186,8 @@
         companyName: "DefaultCompany",
         productName: "Exit Pois",
         productVersion: "1.0.2",
-		devicePixelRatio: getDevicePixelRatio() // Apply the dynamic devicePixelRatio with extra scaling
-        // matchWebGLToCanvasSize: false,
+		//devicePixelRatio: 1, // Prevent Unity from adjusting for devicePixelRatio
+		matchWebGLToCanvasSize: false,
       };
         // Prevent context menu on right-click
         document.addEventListener('contextmenu', event => event.preventDefault());
@@ -280,46 +275,43 @@
 
         function resizeCanvas() {
             const aspectRatio = 9 / 16;
-            let width, height;
+			const devicePixelRatio = window.devicePixelRatio || 1;
 
             // Use window.innerWidth and window.innerHeight for both modes
             let availableWidth = window.innerWidth;
             let availableHeight = window.innerHeight;
 
-            // Calculate the ideal width and height to maintain aspect ratio
-            if (availableHeight * aspectRatio <= availableWidth) {
-                height = availableHeight;
-                width = height * aspectRatio;
-            } else {
-                width = availableWidth;
-                height = width / aspectRatio;
-            }
+			// Calculate the CSS size of the canvas
+			let cssWidth, cssHeight;
 
-            // Set the canvas size
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
+			if (availableHeight * aspectRatio <= availableWidth) {
+				cssHeight = availableHeight;
+				cssWidth = cssHeight * aspectRatio;
+			} else {
+				cssWidth = availableWidth;
+				cssHeight = cssWidth / aspectRatio;
+			}
 
-			// Adjust based on the dynamically calculated devicePixelRatio
-			let devicePixelRatio = getDevicePixelRatio();
+			// Calculate the canvas's actual rendering size
+			let renderWidth = Math.round(cssWidth * devicePixelRatio);
+			let renderHeight = Math.round(cssHeight * devicePixelRatio);
 
-			// Set the canvas size in actual pixels for sharpness
-			canvas.width = Math.floor(width * devicePixelRatio);
-			canvas.height = Math.floor(height * devicePixelRatio);
+			// Set the canvas rendering size
+			canvas.width = renderWidth;
+			canvas.height = renderHeight;
 
-			// Log for debugging
-			//console.log(`Final devicePixelRatio used: ${devicePixelRatio}`);
-			//console.log(`Canvas width: ${canvas.width}, height: ${canvas.height}`);
-            // Center the canvas within the container
-            canvas.style.marginTop = ((availableHeight - height) / 2) + 'px';
+			// Set the canvas display size
+			canvas.style.width = cssWidth + 'px';
+			canvas.style.height = cssHeight + 'px';
 
-            // Unity will automatically adjust the WebGL context size
-        }
-		// Listen for changes in fullscreen mode and window resize
-		document.addEventListener('fullscreenchange', resizeCanvas);
-		window.addEventListener('resize', resizeCanvas);
+			// Center the canvas within the container
+			canvas.style.marginLeft = ((availableWidth - cssWidth) / 2) + 'px';
+			canvas.style.marginTop = ((availableHeight - cssHeight) / 2) + 'px';
 
-		// Call the resize function when the page loads
-		window.addEventListener('load', resizeCanvas);
+			// Apply CSS to ensure pixelated rendering
+			canvas.style.imageRendering = 'pixelated'; // For modern browsers
+			canvas.style.imageRendering = 'crisp-edges'; // For older browsers
+		}
 
         // Fullscreen toggle with F11 key
         document.addEventListener("keydown", function(event) {
