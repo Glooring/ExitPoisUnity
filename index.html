@@ -147,6 +147,42 @@
 
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/ExitPoisWeb.loader.js";
+
+        // Dynamically set devicePixelRatio to counteract system scaling
+        var systemPixelRatio = window.devicePixelRatio || 1;
+        var desiredPixelRatio = 1; // Target devicePixelRatio for Unity
+        var unityDevicePixelRatio = desiredPixelRatio / systemPixelRatio;
+
+		function getDevicePixelRatio() {
+			// Get the default device pixel ratio from the browser
+			let devicePixelRatio = window.devicePixelRatio || 1;
+
+			// Detect mobile devices (Android, iPhone, iPad, iPod)
+			var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+
+			if (!isMobile) {
+				// Get screen dimensions
+				const screenWidth = window.screen.width;
+				const screenHeight = window.screen.height;
+
+				// Calculate aspect ratio
+				const aspectRatio = screenWidth / screenHeight;
+
+				// Set the extra scaling factor to the aspect ratio
+				let extraScalingFactor = aspectRatio.toFixed(2);
+
+				// Apply the calculated scaling factor based on the aspect ratio
+				devicePixelRatio = devicePixelRatio * extraScalingFactor;
+
+				//console.log(`Screen Resolution: ${screenWidth}x${screenHeight}`);
+				//console.log(`Aspect Ratio: ${aspectRatio.toFixed(2)}`);
+				//console.log(`Calculated Extra Scaling Factor (Aspect Ratio): ${extraScalingFactor}`);
+			}
+
+			//console.log(`Final devicePixelRatio: ${devicePixelRatio} (Mobile: ${isMobile})`);
+			return devicePixelRatio;
+		}
       var config = {
         dataUrl: buildUrl + "/ExitPoisWeb.data",
         frameworkUrl: buildUrl + "/ExitPoisWeb.framework.js",
@@ -155,10 +191,22 @@
         companyName: "DefaultCompany",
         productName: "Exit Pois",
         productVersion: "1.0.2",
-        // showBanner: unityShowBanner,
+		devicePixelRatio: getDevicePixelRatio() // Apply the dynamic devicePixelRatio with extra scaling
+        // matchWebGLToCanvasSize: false,
       };
         // Prevent context menu on right-click
         document.addEventListener('contextmenu', event => event.preventDefault());
+        // Prevent browser zooming via keyboard and mouse wheel
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && (event.key === '+' || event.key === '-' || event.key === '=' || event.key === '_')) {
+                event.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function(event) {
+            if (event.ctrlKey) {
+                event.preventDefault();
+            }
+        }, { passive: false });
 
         let canvas = document.getElementById("unity-canvas");
         let container = document.getElementById("unity-container");
@@ -251,11 +299,27 @@
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
 
+			// Adjust based on the dynamically calculated devicePixelRatio
+			let devicePixelRatio = getDevicePixelRatio();
+
+			// Set the canvas size in actual pixels for sharpness
+			canvas.width = Math.floor(width * devicePixelRatio);
+			canvas.height = Math.floor(height * devicePixelRatio);
+
+			// Log for debugging
+			//console.log(`Final devicePixelRatio used: ${devicePixelRatio}`);
+			//console.log(`Canvas width: ${canvas.width}, height: ${canvas.height}`);
             // Center the canvas within the container
             canvas.style.marginTop = ((availableHeight - height) / 2) + 'px';
 
             // Unity will automatically adjust the WebGL context size
         }
+		// Listen for changes in fullscreen mode and window resize
+		document.addEventListener('fullscreenchange', resizeCanvas);
+		window.addEventListener('resize', resizeCanvas);
+
+		// Call the resize function when the page loads
+		window.addEventListener('load', resizeCanvas);
 
         // Fullscreen toggle with F11 key
         document.addEventListener("keydown", function(event) {
@@ -275,6 +339,8 @@
         document.addEventListener('fullscreenchange', resizeCanvas);
         window.addEventListener('resize', resizeCanvas);
 
+        // Start the loading screen
+        setStatusMode('indeterminate');
         // Load Unity script
         var script = document.createElement("script");
         script.src = loaderUrl;
